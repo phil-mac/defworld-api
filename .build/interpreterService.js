@@ -3,7 +3,6 @@ const interpretGen = (input) => new Promise((resolve, reject) => {
   axios.post("https://gen.phil-mac.repl.co/interpret", {
     input
   }).then((res) => {
-    console.log("asdf", res.data);
     resolve(res.data);
   }).catch((e) => {
     console.error(e);

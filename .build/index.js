@@ -20,34 +20,97 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
+const sockets = require("socket.io");
 const { Sequelize, DataTypes } = require("sequelize");
 const { ApolloServer, gql } = require("apollo-server-express");
 const { ApolloServerPluginDrainHttpServer } = require("apollo-server-core");
+const { makeExecutableSchema } = require("@graphql-tools/schema");
+const { WebSocketServer } = require("ws");
+const { useServer } = require("graphql-ws/lib/use/ws");
+const { PubSub, withFilter } = require("graphql-subscriptions");
 const { interpretGen } = require("./interpreterService");
 const app = express();
 app.use(cors());
+const httpServer = http.createServer(app);
+const io = sockets(httpServer, {
+  cors: {
+    origin: "*",
+    handlePreflightRequest: (req, res) => {
+      console.log("um hi");
+      res.writeHead(200, {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST"
+      });
+      red.end();
+    }
+  }
+});
 app.get("/", async (req, res) => {
   res.send("Hello world");
 });
+const socketWorlds = {};
+const socketNodes = {};
+io.on("connection", (socket) => {
+  console.log("client connected to socket");
+  socket.on("joinWorld", ({ name, worldId }) => {
+    socket.join(`world-${worldId}`);
+    socketWorlds[socket.id] = `world-${worldId}`;
+    console.log({ socketWorlds });
+    socket.in(`world-${worldId}`).emit("broadcast", name + "joined world " + worldId);
+  });
+  socket.on("message", (data) => {
+    console.log("new message: " + data);
+    console.log("room: ", socketWorlds[socket.id]);
+    io.in(socketWorlds[socket.id]).emit("broadcast", data);
+  });
+  socket.on("joinNode", ({ name, nodeId }) => {
+    socket.join(`node-${nodeId}`);
+    socketNodes[socket.id] = `node-${nodeId}`;
+    console.log({ socketNodes });
+    socket.in(`node-${nodeId}`).emit("broadcast", name + "joined node " + nodeId);
+  });
+  socket.on("leaveNode", ({ name, nodeId }) => {
+    socket.leave(`node-${nodeId}`);
+    delete socketNodes[socket.id];
+    console.log({ socketNodes });
+    socket.in(`node-${nodeId}`).emit("broadcast", name + "left node " + nodeId);
+  });
+  socket.on("updateText", ({ type, pos, text }) => {
+    console.log("broadcast update text");
+    socket.in(socketNodes[socket.id]).emit("textUpdated", { type, pos, text });
+  });
+  socket.on("disconnect", () => {
+    console.log("client disconnected from socket");
+    delete socketWorlds[socket.id];
+    delete socketNodes[socket.id];
+  });
+});
+const pubsub = new PubSub();
 const typeDefs = gql(`
   type Query {
     hello: String!
+    user(id: ID!): User!
     users: [User!]!
-    worlds: [World!]!
     world(id: ID!): World!
+    worlds: [World!]!
     node(id: ID!): Node!
   }
 
   type Mutation {
-    createUser(name: String!): User!
+    createUser(username: String!): User!
     createWorld(name: String!): World!
     createNode(worldId: ID!, pos: [Int!]!): Node!
     updateNodeContent(id: ID!, content: String!): Node!
   }
 
+  type Subscription {
+    nodeCreated(worldId: ID!): World!
+  }
+
   type User {
     id: ID!
-    name: String!
+    username: String!
+    worldUsers: [WorldUser!]!
   }
 
   type World {
@@ -55,6 +118,16 @@ const typeDefs = gql(`
     name: String!
     nodes: [Node!]
     grid: [[Int!]!]
+    worldUsers: [WorldUser!]!
+  }
+
+  type WorldUser {
+    id: ID!
+    userId: ID!
+    user: User!
+    worldId: ID!
+    world: World!
+    lastVisited: Float!
   }
 
   type Node {
@@ -68,7 +141,7 @@ const typeDefs = gql(`
 const gridSideLength = 50;
 const sequelize = new Sequelize(process.env.POSTGRES);
 const User = sequelize.define("user", {
-  name: {
+  username: {
     type: DataTypes.STRING,
     allowNull: false
   }
@@ -84,6 +157,35 @@ const World = sequelize.define("world", {
     defaultValue: [...Array(Math.pow(gridSideLength, 2))].map((e) => Array(2).fill(0))
   }
 });
+const WorldUser = sequelize.define("worldUser", {
+  id: {
+    primaryKey: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    autoIncrement: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    reference: {
+      model: User,
+      key: "id"
+    }
+  },
+  worldId: {
+    type: DataTypes.INTEGER,
+    references: {
+      model: World,
+      key: "id"
+    }
+  },
+  lastVisited: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    defaultValue: new Date().getTime()
+  }
+});
+World.belongsToMany(User, { through: WorldUser });
+User.belongsToMany(World, { through: WorldUser });
 const ScriptNode = sequelize.define("node", {
   content: {
     type: DataTypes.STRING(4096),
@@ -102,15 +204,19 @@ const resolvers = {
     hello: () => {
       return "Hello world!";
     },
+    user: async (parent, args) => {
+      const { id } = args;
+      return await User.findOne({ where: { id } });
+    },
     users: async () => {
       return await User.findAll();
-    },
-    worlds: async () => {
-      return await World.findAll();
     },
     world: async (parent, args) => {
       const { id } = args;
       return await World.findOne({ where: { id } });
+    },
+    worlds: async () => {
+      return await World.findAll();
     },
     node: async (parent, args) => {
       const { id } = args;
@@ -119,9 +225,14 @@ const resolvers = {
   },
   Mutation: {
     createUser: async (parent, args) => {
-      const { name } = args;
-      const user = await User.create({ name });
-      return user.toJSON();
+      const { username } = args;
+      const existingUser = await User.findOne({ where: { username } });
+      if (!!existingUser) {
+        return existingUser.toJSON();
+      } else {
+        const user = await User.create({ username });
+        return user.toJSON();
+      }
     },
     createWorld: async (parent, args) => {
       const { name } = args;
@@ -135,7 +246,9 @@ const resolvers = {
       const grid = world.toJSON().grid;
       const index = pos[0] + gridSideLength * pos[1];
       grid[index] = [scriptNode.id, 50];
-      await World.update({ grid }, { where: { id: worldId } });
+      let updatedWorld = await World.update({ grid }, { where: { id: worldId }, returning: true, plain: true });
+      updatedWorld = updatedWorld[1].toJSON();
+      pubsub.publish("NODE_CREATED", { nodeCreated: updatedWorld });
       return scriptNode.toJSON();
     },
     updateNodeContent: async (parent, args) => {
@@ -169,17 +282,57 @@ const resolvers = {
       return __spreadProps(__spreadValues({}, n), { result: result.result, blocks: JSON.stringify(result.blocks) });
     }
   },
+  Subscription: {
+    nodeCreated: {
+      subscribe: withFilter(() => pubsub.asyncIterator(["NODE_CREATED"]), (payload, variables) => {
+        const isSpecificWorld = payload.nodeCreated.id == variables.worldId;
+        return isSpecificWorld;
+      })
+    }
+  },
+  User: {
+    worldUsers: async (user) => {
+      return await WorldUser.findAll({ where: { userId: user.id } });
+    }
+  },
   World: {
     nodes: async (world) => {
       return await ScriptNode.findAll({ where: { worldId: world.id }, order: [["id", "ASC"]] });
+    },
+    worldUsers: async (world) => {
+      return await WorldUser.findAll({ where: { worldId: world.id } });
+    }
+  },
+  WorldUser: {
+    user: async (worldUser) => {
+      return await User.findOne({ where: { id: worldUser.userId } });
+    },
+    world: async (worldUser) => {
+      return await World.findOne({ where: { id: worldUser.worldId } });
     }
   }
 };
-const httpServer = http.createServer(app);
+const schema = makeExecutableSchema({ typeDefs, resolvers });
+const wsServer = new WebSocketServer({
+  server: httpServer,
+  path: "/subscriptions"
+});
+const serverCleanup = useServer({ schema }, wsServer);
 const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })]
+  schema,
+  csrfPrevention: true,
+  plugins: [
+    ApolloServerPluginDrainHttpServer({ httpServer }),
+    {
+      async serverWillStart() {
+        return {
+          async drainServer() {
+            await serverCleanup.dispose();
+          }
+        };
+      }
+    }
+  ]
 });
 const nodeContent = `(def! 
   line 
@@ -192,13 +345,17 @@ const nodeContent = `(def!
 
 (line 7)
 `;
+const shouldResetDB = false;
 (async () => {
-  await sequelize.sync({ force: true });
-  await User.create({ name: "Phil" });
-  const worldOne = await World.create({ name: "Terra One" });
-  const worldTwo = await World.create({ name: "New world" });
-  await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [3, 3] });
-  await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [5, 2] });
+  if (shouldResetDB) {
+    await sequelize.sync({ force: true });
+    const userOne = await User.create({ username: "Phil" });
+    const worldOne = await World.create({ name: "Terra One" });
+    await WorldUser.create({ userId: userOne.id, worldId: worldOne.id });
+    const worldTwo = await World.create({ name: "New world" });
+    await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [3, 3] });
+    await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [5, 2] });
+  }
   await server.start();
   server.applyMiddleware({ app });
   await new Promise((resolve) => httpServer.listen({ port: 4e3 }, resolve));

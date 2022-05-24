@@ -6,7 +6,6 @@ const interpretGen = (input: string) => new Promise((resolve, reject) =>   {
         input
       })
       .then(res => {
-        console.log("asdf", res.data);
         resolve(res.data);
       })
       .catch(e => {

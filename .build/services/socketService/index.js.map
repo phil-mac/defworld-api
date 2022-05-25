@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../services/socketService/index.ts"],
+  "sourcesContent": ["const worldInit = require('./world');\nconst nodeInit = require('./node');\n\nconst init = (io) => {\n  const nodes = {};\n\n  function getNode (nodeId) {\n    if (!(nodeId in nodes)) {\n      nodes[nodeId] = {revLog: [], pendingOps: [], content: ''};\n    }\n    \n    return nodes[nodeId];\n  }\n  \n  io.on('connection', socket => {\n    console.log('client connected to socket');\n\n    worldInit(socket);\n    nodeInit(socket, getNode);\n  });\n};\n\nmodule.exports = { init };"],
+  "mappings": "AAAA,MAAM,YAAY,QAAQ;AAC1B,MAAM,WAAW,QAAQ;AAEzB,MAAM,OAAO,CAAC,OAAO;AACnB,QAAM,QAAQ;AAEd,mBAAkB,QAAQ;AACxB,QAAI,CAAE,WAAU,QAAQ;AACtB,YAAM,UAAU,EAAC,QAAQ,IAAI,YAAY,IAAI,SAAS;AAAA;AAGxD,WAAO,MAAM;AAAA;AAGf,KAAG,GAAG,cAAc,YAAU;AAC5B,YAAQ,IAAI;AAEZ,cAAU;AACV,aAAS,QAAQ;AAAA;AAAA;AAIrB,OAAO,UAAU,EAAE;",
+  "names": []
+}

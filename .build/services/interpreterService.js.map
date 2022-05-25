@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../services/interpreterService.ts"],
+  "sourcesContent": ["const axios = require('axios');\n\nconst interpretGen = (input: string) => new Promise((resolve, reject) =>   {\n    axios\n      .post('https://gen.phil-mac.repl.co/interpret', {\n        input\n      })\n      .then(res => {\n        resolve(res.data);\n      })\n      .catch(e => {\n        console.error(e);\n        reject(e);\n      })\n  }\n);\n\nmodule.exports = { interpretGen };"],
+  "mappings": "AAAA,MAAM,QAAQ,QAAQ;AAEtB,MAAM,eAAe,CAAC,UAAkB,IAAI,QAAQ,CAAC,SAAS,WAAa;AACvE,QACG,KAAK,0CAA0C;AAAA,IAC9C;AAAA,KAED,KAAK,SAAO;AACX,YAAQ,IAAI;AAAA,KAEb,MAAM,OAAK;AACV,YAAQ,MAAM;AACd,WAAO;AAAA;AAAA;AAKf,OAAO,UAAU,EAAE;",
+  "names": []
+}

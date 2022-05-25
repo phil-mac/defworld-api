@@ -15,4 +15,4 @@ const interpretGen = (input: string) => new Promise((resolve, reject) =>   {
   }
 );
 
-exports.interpretGen = interpretGen;
+module.exports = { interpretGen };

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../services/socketService/world.ts"],
+  "sourcesContent": ["function worldInit(socket) {\n  const socketWorlds = {};\n\n  socket.on('joinWorld', ({name, worldId}) => {\n    socket.join(`world-${worldId}`);\n    socketWorlds[socket.id] = `world-${worldId}`;\n    console.log({socketWorlds});\n    socket.in(`world-${worldId}`).emit('broadcast', name + 'joined world ' + worldId);\n  });\n  \n  socket.on('message', data => {\n    console.log('new message: ' + data);\n    // console.log({socket});\n    console.log('room: ', socketWorlds[socket.id]);\n    io.in(socketWorlds[socket.id]).emit('broadcast', data);\n  });\n    \n  socket.on('disconnect', () => {\n    console.log('client disconnected from socket, for world stuff')\n    delete socketWorlds[socket.id];\n  })\n}\n\nmodule.exports = worldInit;"],
+  "mappings": "AAAA,mBAAmB,QAAQ;AACzB,QAAM,eAAe;AAErB,SAAO,GAAG,aAAa,CAAC,EAAC,MAAM,cAAa;AAC1C,WAAO,KAAK,SAAS;AACrB,iBAAa,OAAO,MAAM,SAAS;AACnC,YAAQ,IAAI,EAAC;AACb,WAAO,GAAG,SAAS,WAAW,KAAK,aAAa,OAAO,kBAAkB;AAAA;AAG3E,SAAO,GAAG,WAAW,UAAQ;AAC3B,YAAQ,IAAI,kBAAkB;AAE9B,YAAQ,IAAI,UAAU,aAAa,OAAO;AAC1C,OAAG,GAAG,aAAa,OAAO,KAAK,KAAK,aAAa;AAAA;AAGnD,SAAO,GAAG,cAAc,MAAM;AAC5B,YAAQ,IAAI;AACZ,WAAO,aAAa,OAAO;AAAA;AAAA;AAI/B,OAAO,UAAU;",
+  "names": []
+}

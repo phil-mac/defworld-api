@@ -9,5 +9,5 @@ const interpretGen = (input) => new Promise((resolve, reject) => {
     reject(e);
   });
 });
-exports.interpretGen = interpretGen;
+module.exports = { interpretGen };
 //# sourceMappingURL=interpreterService.js.map

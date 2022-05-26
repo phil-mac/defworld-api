@@ -1,8 +1,5 @@
 function nodeInit(socket, getNode) {
   const nodeRooms = {};
-  // const revLog = [];
-  // const pendingOps = [];
-  // let content = '';
 
   socket.on('joinNode', ({name, nodeId}) => {
     socket.join(`node-${nodeId}`);
@@ -26,12 +23,11 @@ function nodeInit(socket, getNode) {
     delete nodeRooms[socket.id];
   });
 
+  // ------- OT logic --------
   
   function joinNode (nodeId, node) {
     socket.on('updateText', (op) => {
       console.log('recieved op: ', op)
-  
-      const {type, pos, text, rev} = op;
   
       addPendingOp(op);    
     });
@@ -39,22 +35,74 @@ function nodeInit(socket, getNode) {
     function addPendingOp(op) {
       node.pendingOps.push(op);
   
-      // for not just execute them right after adding them
+      // for now, just execute them right after adding them
       const nextOp = node.pendingOps.pop();
+
+      const transformedOp = transformOp(nextOp);
       
-      executeOp(nextOp);
+      executeOp(transformedOp);
+    }
+
+    // content:  xabc
+    // latest rev:  4
+    // revlog:  [
+    //   { type: 'add', pos: 0, text: 'a', rev: 1 },
+    //   { type: 'add', pos: 1, text: 'b', rev: 2 },
+    //   { type: 'add', pos: 2, text: 'c', rev: 3 },
+    //   { type: 'add', pos: 0, text: 'x', rev: 4 }
+    // ]
+
+    //   { type: 'add', pos: 0, text: 'a', rev: 1 },
+    //   { type: 'add', pos: 0, text: 'b', rev: 1 },
+    //      => pos 1, rev 2
+
+    //   { type: 'add', pos: 0, text: 'a', rev: 1 },
+    //   { type: 'add', pos: 1, text: 'b', rev: 2 },
+    //   { type: 'add', pos: 1, text: 'x', rev: 2 },
+    //      => pos 2, rev 3
+
+    //   { type: 'add', pos: 0, text: 'a', rev: 1 },
+    //   { type: 'add', pos: 1, text: 'b', rev: 2 },
+    //   { type: 'add', pos: 0, text: 'x', rev: 2 },
+    //      => pos 0, rev 3
+
+    
+    
+    function transformOp(op) {
+      if (op.rev > node.revLog.length) return op;
+
+      const transformingOps = node.revLog.slice(op.rev - 1);
+
+      for (const tOp of transformingOps) {
+        if (tOp.pos <= op.pos) {
+          op.pos = op.pos + 1;
+        }
+        op.rev = op.rev + 1;
+      }
+      
+      console.log('transform into: ', op);
+      return op;
     }
   
     function executeOp(op) {
-      applyOp(op);
-      broadcastOp(op);
       node.revLog.push(op);
       console.log('revlog: ', node.revLog)
+
+      applyOp(op);
+      acknowledgeOp(op);
+      broadcastOp(op);
     }
   
     function applyOp({type, pos, text}) {
       node.content = node.content.slice(0, pos) + text + node.content.slice(pos);
       console.log('content: ', node.content);
+      console.log(' ')
+    }
+
+    function acknowledgeOp(op) {
+      const rev = node.revLog.length;
+      // console.log('latest rev: ', rev)
+      socket.emit('opAcknowledged', {ack: rev});
     }
     
     function broadcastOp(op) {

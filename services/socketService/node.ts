@@ -1,31 +1,37 @@
-function nodeInit(socket, getNode) {
-  const nodeRooms = {};
 
-  socket.on('joinNode', ({name, nodeId}) => {
+const {models} = require('../../schema');
+
+function nodeInit(socket, getNode) {
+  // const nodeRooms = {};
+
+  socket.on('joinNode', async ({name, nodeId}) => {
     socket.join(`node-${nodeId}`);
-    nodeRooms[socket.id] = `node-${nodeId}`;
+    // nodeRooms[socket.id] = `node-${nodeId}`;
     
-    const node = getNode(nodeId);
-    joinNode(nodeId, node);
+    const node = await getNode(nodeId);
+    socket.emit('initContent', {content: node.content});
+    joinNode(nodeId, node, name);
     
     socket.in(`node-${nodeId}`).emit('broadcast', name + 'joined node ' + nodeId);
   });
 
   socket.on('leaveNode', ({name, nodeId}) => {
     socket.leave(`node-${nodeId}`);
-    delete nodeRooms[socket.id];
+    // delete nodeRooms[socket.id];
     
     socket.in(`node-${nodeId}`).emit('broadcast', name + 'left node ' + nodeId);
   });
 
   socket.on('disconnect', () => {
     console.log('client disconnected from socket, for node stuff')
-    delete nodeRooms[socket.id];
+    // delete nodeRooms[socket.id];
   });
 
   // ------- OT logic --------
   
-  function joinNode (nodeId, node) {
+  function joinNode (nodeId, node, name) {
+    node.users[socket.id] = {name, selection: { start: 0, end: 0}};
+    
     socket.on('updateText', (op) => {
       console.log('recieved op: ', op)
   
@@ -62,11 +68,9 @@ function nodeInit(socket, getNode) {
     //      => pos 2, rev 3
 
     //   { type: 'add', pos: 0, text: 'a', rev: 1 },
-    //   { type: 'add', pos: 1, text: 'b', rev: 2 },
+    //   { type: 'add', pos: 1, text: 'b', rev: 2 },''
     //   { type: 'add', pos: 0, text: 'x', rev: 2 },
     //      => pos 0, rev 3
-
-    
     
     function transformOp(op) {
       if (op.rev > node.revLog.length) return op;
@@ -96,6 +100,10 @@ function nodeInit(socket, getNode) {
     function applyOp({type, pos, text}) {
       node.content = node.content.slice(0, pos) + text + node.content.slice(pos);
       console.log('content: ', node.content);
+      models.node.update(
+        { content: node.content },
+        { where: { id: nodeId }}
+      );
       console.log(' ')
     }
 
@@ -106,8 +114,20 @@ function nodeInit(socket, getNode) {
     }
     
     function broadcastOp(op) {
-      socket.in(nodeRooms[socket.id]).emit('textUpdated', op);
+      socket.in(`node-${nodeId}`).emit('textUpdated', op);
     }
+
+    // --- sync selections ---
+
+    socket.on('syncSelection', ({start}) => {
+      console.log('sync selection: ', {start})
+      node.users[socket.id].selection.start = start;
+      console.log("updated users object: ")
+      console.log(node.users)
+
+      const {name, selection} = node.users[socket.id];
+      socket.in(`node-${nodeId}`).emit('selectionUpdated', {name, selection })
+    })
   }
 }
 

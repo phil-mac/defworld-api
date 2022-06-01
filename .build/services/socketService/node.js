@@ -1,22 +1,21 @@
+const { models } = require("../../schema");
 function nodeInit(socket, getNode) {
-  const nodeRooms = {};
-  socket.on("joinNode", ({ name, nodeId }) => {
+  socket.on("joinNode", async ({ name, nodeId }) => {
     socket.join(`node-${nodeId}`);
-    nodeRooms[socket.id] = `node-${nodeId}`;
-    const node = getNode(nodeId);
-    joinNode(nodeId, node);
+    const node = await getNode(nodeId);
+    socket.emit("initContent", { content: node.content });
+    joinNode(nodeId, node, name);
     socket.in(`node-${nodeId}`).emit("broadcast", name + "joined node " + nodeId);
   });
   socket.on("leaveNode", ({ name, nodeId }) => {
     socket.leave(`node-${nodeId}`);
-    delete nodeRooms[socket.id];
     socket.in(`node-${nodeId}`).emit("broadcast", name + "left node " + nodeId);
   });
   socket.on("disconnect", () => {
     console.log("client disconnected from socket, for node stuff");
-    delete nodeRooms[socket.id];
   });
-  function joinNode(nodeId, node) {
+  function joinNode(nodeId, node, name) {
+    node.users[socket.id] = { name, selection: { start: 0, end: 0 } };
     socket.on("updateText", (op) => {
       console.log("recieved op: ", op);
       addPendingOp(op);
@@ -50,6 +49,7 @@ function nodeInit(socket, getNode) {
     function applyOp({ type, pos, text }) {
       node.content = node.content.slice(0, pos) + text + node.content.slice(pos);
       console.log("content: ", node.content);
+      models.node.update({ content: node.content }, { where: { id: nodeId } });
       console.log(" ");
     }
     function acknowledgeOp(op) {
@@ -57,8 +57,16 @@ function nodeInit(socket, getNode) {
       socket.emit("opAcknowledged", { ack: rev });
     }
     function broadcastOp(op) {
-      socket.in(nodeRooms[socket.id]).emit("textUpdated", op);
+      socket.in(`node-${nodeId}`).emit("textUpdated", op);
     }
+    socket.on("syncSelection", ({ start }) => {
+      console.log("sync selection: ", { start });
+      node.users[socket.id].selection.start = start;
+      console.log("updated users object: ");
+      console.log(node.users);
+      const { name: name2, selection } = node.users[socket.id];
+      socket.in(`node-${nodeId}`).emit("selectionUpdated", { name: name2, selection });
+    });
   }
 }
 module.exports = nodeInit;

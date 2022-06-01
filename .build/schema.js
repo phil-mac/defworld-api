@@ -40,5 +40,5 @@ const seedDatabase = async () => {
   await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [3, 3] });
   await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [5, 2] });
 };
-module.exports = { schema, seedDatabase };
+module.exports = { schema, seedDatabase, models };
 //# sourceMappingURL=schema.js.map

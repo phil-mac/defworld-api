@@ -17,35 +17,14 @@ const httpServer = http.createServer(app);
 const io = sockets(httpServer, {
   cors: {
     origin: "*",
-    handlePreflightRequest: (req, res) => {
-      res.writeHead(200, {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST"
-      });
-      res.end();
-    }
+    methods: ["GET", "POST"]
   }
 });
-socketService.init(io);
-const wsServer = new WebSocketServer({
-  server: httpServer,
-  path: "/subscriptions"
-});
-const serverCleanup = useServer({ schema }, wsServer);
 const server = new ApolloServer({
   schema,
-  csrfPrevention: true,
+  csrfPrevention: false,
   plugins: [
-    ApolloServerPluginDrainHttpServer({ httpServer }),
-    {
-      async serverWillStart() {
-        return {
-          async drainServer() {
-            await serverCleanup.dispose();
-          }
-        };
-      }
-    }
+    ApolloServerPluginDrainHttpServer({ httpServer })
   ]
 });
 (async () => {
@@ -54,5 +33,6 @@ const server = new ApolloServer({
   await server.start();
   server.applyMiddleware({ app });
   await new Promise((resolve) => httpServer.listen({ port: 4e3 }, resolve));
+  socketService.init(io);
 })();
 //# sourceMappingURL=index.js.map

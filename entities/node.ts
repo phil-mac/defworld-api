@@ -70,12 +70,12 @@ const resolvers = (models, pubsub) => ({
       const { result } = await interpreterService.interpretGen(content);
       console.log(result);
 
-       const scriptNode = await models.node.update(
+      const scriptNode = await models.node.update(
         { content },
-        { where: { id }, returning: true, plain: true });
+        { where: { id }, returning: true, plain: true }
+      );
 
       const n = scriptNode[1].toJSON();
-
 
       const blocks = result.blocks; // [{x:1, y:1, z:1}, {x:2, y:2, z:2}]
 

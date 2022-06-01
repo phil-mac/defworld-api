@@ -58,4 +58,4 @@ const seedDatabase = async () => {
   await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [5, 2]})
 }
 
-module.exports = { schema, seedDatabase };
+module.exports = { schema, seedDatabase, models };

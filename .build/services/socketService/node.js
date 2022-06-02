@@ -1,9 +1,15 @@
+const { ChangeSet } = require("@codemirror/state");
+const { Update } = require("@codemirror/collab");
 const { models } = require("../../schema");
 function nodeInit(socket, getNode) {
   socket.on("joinNode", async ({ name, nodeId }) => {
     socket.join(`node-${nodeId}`);
     const node = await getNode(nodeId);
-    socket.emit("initContent", { content: node.content });
+    const init = {
+      doc: node.doc.toString(),
+      rev: node.updates.length
+    };
+    socket.emit("initContent", init);
     joinNode(nodeId, node, name);
     socket.in(`node-${nodeId}`).emit("broadcast", name + "joined node " + nodeId);
   });
@@ -15,58 +21,39 @@ function nodeInit(socket, getNode) {
     console.log("client disconnected from socket, for node stuff");
   });
   function joinNode(nodeId, node, name) {
-    node.users[socket.id] = { name, selection: { start: 0, end: 0 } };
-    socket.on("updateText", (op) => {
-      console.log("recieved op: ", op);
-      addPendingOp(op);
-    });
-    function addPendingOp(op) {
-      node.pendingOps.push(op);
-      const nextOp = node.pendingOps.pop();
-      const transformedOp = transformOp(nextOp);
-      executeOp(transformedOp);
-    }
-    function transformOp(op) {
-      if (op.rev > node.revLog.length)
-        return op;
-      const transformingOps = node.revLog.slice(op.rev - 1);
-      for (const tOp of transformingOps) {
-        if (tOp.pos <= op.pos) {
-          op.pos = op.pos + 1;
-        }
-        op.rev = op.rev + 1;
+    node.users[socket.id] = { name };
+    console.log(`user ${name} joined node ${nodeId}`);
+    socket.on("pullUpdates", ({ rev }) => {
+      if (rev < node.updates.length) {
+        resToPullUpdates(node.updates.slice(rev));
+      } else {
+        node.pending.push(resToPullUpdates);
       }
-      console.log("transform into: ", op);
-      return op;
-    }
-    function executeOp(op) {
-      node.revLog.push(op);
-      console.log("revlog: ", node.revLog);
-      applyOp(op);
-      acknowledgeOp(op);
-      broadcastOp(op);
-    }
-    function applyOp({ type, pos, text }) {
-      node.content = node.content.slice(0, pos) + text + node.content.slice(pos);
-      console.log("content: ", node.content);
-      models.node.update({ content: node.content }, { where: { id: nodeId } });
-      console.log(" ");
-    }
-    function acknowledgeOp(op) {
-      const rev = node.revLog.length;
-      socket.emit("opAcknowledged", { ack: rev });
-    }
-    function broadcastOp(op) {
-      socket.in(`node-${nodeId}`).emit("textUpdated", op);
-    }
-    socket.on("syncSelection", ({ start }) => {
-      console.log("sync selection: ", { start });
-      node.users[socket.id].selection.start = start;
-      console.log("updated users object: ");
-      console.log(node.users);
-      const { name: name2, selection } = node.users[socket.id];
-      socket.in(`node-${nodeId}`).emit("selectionUpdated", { name: name2, selection });
     });
+    function resToPullUpdates(updates) {
+      socket.emit("pullUpdatesRes", updates);
+    }
+    socket.on("pushUpdates", ({ rev, updates }) => {
+      if (rev != node.updates.length) {
+        resToPushUpdates(false);
+      } else {
+        for (let update of updates) {
+          let changes = ChangeSet.fromJSON(update.changes);
+          let effects = JSON.parse(update.effects);
+          console.log("EFFECTS: ", effects);
+          node.updates.push({ changes, effects: update.effects, clientId: update.clientID });
+          node.doc = changes.apply(node.doc);
+          models.node.update({ content: node.doc.toString() }, { where: { id: nodeId } });
+        }
+        resToPushUpdates(true);
+        while (node.pending.length) {
+          node.pending.pop()(updates);
+        }
+      }
+    });
+    function resToPushUpdates(didSucceed) {
+      socket.emit("pushUpdatesRes", didSucceed);
+    }
   }
 }
 module.exports = nodeInit;

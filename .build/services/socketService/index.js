@@ -1,5 +1,6 @@
-const worldInit = require("./world");
+const { Text } = require("@codemirror/state");
 const nodeInit = require("./node");
+const worldInit = require("./world");
 const { models } = require("../../schema");
 const init = (io) => {
   const nodes = {};
@@ -9,10 +10,10 @@ const init = (io) => {
       const content = node.toJSON().content;
       console.log("got node content from db: ", content);
       nodes[nodeId] = {
-        revLog: [],
-        pendingOps: [],
-        users: {},
-        content
+        updates: [],
+        pending: [],
+        doc: Text.of([content]),
+        users: {}
       };
     }
     return nodes[nodeId];

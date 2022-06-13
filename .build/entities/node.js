@@ -19,8 +19,8 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 const { DataTypes } = require("sequelize");
 const { withFilter } = require("graphql-subscriptions");
-const interpreterService = require("../services/interpreterService");
 const { gridSideLength } = require("./world");
+const interpreterService = require("../services/interpreterService");
 const typeDefs = `
   type Query {
     node(id: ID!): Node!
@@ -67,7 +67,7 @@ const resolvers = (models, pubsub) => ({
       const scriptNode = await models.node.create({ worldId, pos });
       const world = await models.world.findOne({ where: { id: worldId } });
       const grid = world.toJSON().grid;
-      const index = pos[0] + gridSideLength * pos[1];
+      const index = pos[0] + gridSideLength * pos[2] + gridSideLength * gridSideLength * pos[1];
       grid[index] = [scriptNode.id, 50];
       let updatedWorld = await models.world.update({ grid }, { where: { id: worldId }, returning: true, plain: true });
       updatedWorld = updatedWorld[1].toJSON();
@@ -76,10 +76,10 @@ const resolvers = (models, pubsub) => ({
     },
     updateNodeContent: async (parent, args) => {
       const { id, content } = args;
-      const { result } = await interpreterService.interpretGen(content);
-      console.log(result);
       const scriptNode = await models.node.update({ content }, { where: { id }, returning: true, plain: true });
       const n = scriptNode[1].toJSON();
+      const { result } = await interpreterService.interpretGen(content);
+      console.log(result);
       const blocks = result.blocks;
       const world = await models.world.findOne({ where: { id: n.worldId } });
       const grid = world.toJSON().grid;

@@ -18,20 +18,6 @@ const define = sequelize => sequelize.define('worldUser', {
     allowNull: false,
     autoIncrement: true,
   },
-  // userId: {
-  //   type: DataTypes.INTEGER,
-  //   reference: {
-  //     model: User,
-  //     key: 'id'
-  //   }
-  // },
-  // worldId: {
-  //   type: DataTypes.INTEGER,
-  //   references: {
-  //     model: World,
-  //     key: 'id'
-  //   }
-  // },
   lastVisited: {
     type: DataTypes.BIGINT,
     allowNull: false,

@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const gridSideLength = 50;
+const gridSideLength = 32;
 const typeDefs = `
   type World {
     id: ID!
@@ -26,7 +26,7 @@ const define = (sequelize) => sequelize.define("world", {
   grid: {
     type: DataTypes.ARRAY(DataTypes.ARRAY(DataTypes.INTEGER)),
     allowNull: false,
-    defaultValue: [...Array(Math.pow(gridSideLength, 2))].map((e) => Array(2).fill(0))
+    defaultValue: [...Array(Math.pow(gridSideLength, 3))].map((e) => Array(2).fill(0))
   }
 });
 const resolvers = (models) => ({

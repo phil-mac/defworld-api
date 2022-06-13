@@ -1,3 +1,6 @@
+// NOTE:
+// code from aborted attempt to make OT system from scratch
+// switched to using Codemirror 6 Collab module.
 
 // in parent:
 // const nodes = {};

@@ -29,7 +29,7 @@ fs.readdirSync('./entities').forEach(file => {
 
 const typeDefs = gql`${typeDefImports.join('')}`;
 
-// could export "association" functions from elsewhere and call them using "models" here
+// could import "association" functions here from elsewhere and call them here using `models`
 models.world.belongsToMany(models.user, { through: models.worldUser });
 models.user.belongsToMany(models.world, { through: models.worldUser });
 models.world.hasMany(models.node);
@@ -43,7 +43,7 @@ entities.forEach(entity => {
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-// could export seedDatabase function from elsewhere, which takes "models" from here
+// could import seedDatabase functions from elsewhere, and call using `models` here
 const seedDatabase = async () => {
   await sequelize.sync({ force: true });
   
@@ -54,8 +54,13 @@ const seedDatabase = async () => {
   
   const worldTwo = await models.world.create({ name: 'New world' });
 
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [3, 3]})
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [5, 2]})
+  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [10, 0, 25]})
+  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [10, 0, 10]})
+  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [18, 0, 10]})
+  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [0, 0, 0]})
+  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [31, 0, 0]})
+  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [0, 0, 31]})
+  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [31, 0, 31]})
 }
 
 module.exports = { schema, seedDatabase, models };

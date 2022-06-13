@@ -33,16 +33,20 @@ const io = sockets(httpServer, {
 });
 
 // ---- graphQL ----
+
+// ---- temporarily removing graphql subscriptions ----
 // const wsServer = new WebSocketServer({
 //   server: httpServer,
 //   path: '/subscriptions',
 // });
 // const serverCleanup = useServer({ schema }, wsServer);
+
 const server = new ApolloServer({
   schema,
   csrfPrevention: false,
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
+    // ---- temporarily removing graphql subscriptions ----
     // {
     //   async serverWillStart() {
     //     return {
@@ -57,7 +61,7 @@ const server = new ApolloServer({
 
 // ---- seed? & listen ----
 (async () => {
-  if (false) await seedDatabase();
+  if (true) await seedDatabase();
   
   await server.start();
   server.applyMiddleware({ app });
@@ -66,3 +70,5 @@ const server = new ApolloServer({
   
   socketService.init(io);
 })();
+
+

@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Sequelize } from 'sequelize';
 
 const typeDefs = `
   type Query {
@@ -12,7 +12,7 @@ const typeDefs = `
   }
 `;
 
-const define = sequelize => sequelize.define('node', {
+const define = (sequelize: Sequelize) => sequelize.define('node', {
   content: {
     type: DataTypes.STRING(4096),
     allowNull: false,
@@ -24,7 +24,7 @@ const define = sequelize => sequelize.define('node', {
   }
 });
 
-const resolvers = (models) => ({
+const resolvers = (models: any) => ({
   Query: {
     node: async (parent: any, args: any) => {
       const { id } = args;

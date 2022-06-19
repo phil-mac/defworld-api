@@ -25,9 +25,9 @@ __export(exports, {
   nodeInit: () => nodeInit
 });
 var import_state = __toModule(require("@codemirror/state"));
-var import_interpreterService = __toModule(require("../interpreterService"));
-var import_blockUtilFns = __toModule(require("../../utils/blockUtilFns"));
-const { models } = require("../../schema");
+var import_schema = __toModule(require("../schema"));
+var import_interpreterService = __toModule(require("../services/interpreterService"));
+var import_blockUtils = __toModule(require("../utils/blockUtils"));
 function nodeInit(io, socket, getNode, getWorld) {
   socket.on("joinNode", joinNode);
   socket.on("leaveNode", async ({ name, nodeId }) => {
@@ -70,7 +70,6 @@ function nodeInit(io, socket, getNode, getWorld) {
       }
       for (let update of updates) {
         let changes = import_state.ChangeSet.fromJSON(update.changes);
-        let effects = JSON.parse(update.effects);
         node.updates.push({ changes, effects: update.effects, clientId: update.clientID });
         node.doc = changes.apply(node.doc);
       }
@@ -81,7 +80,7 @@ function nodeInit(io, socket, getNode, getWorld) {
       const newDoc = node.doc.toString();
       if (initialDoc === newDoc)
         return;
-      let returnedNode = await models.node.update({ content: newDoc }, { where: { id: nodeId }, returning: true, plain: true });
+      let returnedNode = await import_schema.models.node.update({ content: newDoc }, { where: { id: nodeId }, returning: true, plain: true });
       returnedNode = returnedNode[1].toJSON();
       await updateWorldGrid({ returnedNode, content: newDoc });
     }
@@ -89,13 +88,12 @@ function nodeInit(io, socket, getNode, getWorld) {
       socket.emit("pushUpdatesRes", didSucceed);
     }
     async function updateWorldGrid({ returnedNode, content }) {
-      const { result: response } = await (0, import_interpreterService.interpretGen)(content);
-      const { result: evalResult, error: evalError, blocks: newBlocks } = response;
+      const { result: evalResult, error: evalError, blocks: newBlocks } = await (0, import_interpreterService.interpretGen)(content);
       const worldId = returnedNode.worldId;
       const world = await getWorld(worldId);
       let blocks = world.blocks;
-      (0, import_blockUtilFns.removeBlocksFromBlocks)(blocks, returnedNode.id);
-      const blocksToAdd = (0, import_blockUtilFns.addNewBlocksToBlocks)(blocks, returnedNode.id, returnedNode.pos, newBlocks);
+      (0, import_blockUtils.removeBlocksFromBlocks)(blocks, returnedNode.id);
+      const blocksToAdd = (0, import_blockUtils.addNewBlocksToBlocks)(blocks, returnedNode.id, returnedNode.pos, newBlocks);
       io.in(`world-${worldId}`).emit("blocksUpdate", { blocksToAdd, nodeIdOfBlocksToRemove: returnedNode.id });
       io.in(`node-${returnedNode.id}`).emit("evalResult", { result: evalResult, error: evalError });
     }

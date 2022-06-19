@@ -17,14 +17,9 @@ var __toModule = (module2) => {
   return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", module2 && module2.__esModule && "default" in module2 ? { get: () => module2.default, enumerable: true } : { value: module2, enumerable: true })), module2);
 };
 var import_sequelize = __toModule(require("sequelize"));
-const interpreterService = require("../services/interpreterService");
 const typeDefs = `
   type Query {
     node(id: ID!): Node!
-  }
-
-  type Mutation {
-    createNode(worldId: ID!, pos: [Int!]!): Node!
   }
 
   type Node {
@@ -49,13 +44,6 @@ const resolvers = (models) => ({
     node: async (parent, args) => {
       const { id } = args;
       return await models.node.findOne({ where: { id } });
-    }
-  },
-  Mutation: {
-    createNode: async (parent, args) => {
-      const { worldId, pos } = args;
-      const scriptNode = await models.node.create({ worldId, pos });
-      return scriptNode.toJSON();
     }
   }
 });

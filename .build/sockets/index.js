@@ -27,17 +27,16 @@ __export(exports, {
 var import_state = __toModule(require("@codemirror/state"));
 var import_node = __toModule(require("./node"));
 var import_world = __toModule(require("./world"));
-var import_interpreterService = __toModule(require("../interpreterService"));
-var import_blockUtilFns = __toModule(require("../../utils/blockUtilFns"));
-const { models } = require("../../schema");
+var import_interpreterService = __toModule(require("../services/interpreterService"));
+var import_schema = __toModule(require("../schema"));
+var import_blockUtils = __toModule(require("../utils/blockUtils"));
 const initSocketService = (io) => {
   const nodes = {};
   const worlds = {};
   async function getNode(nodeId) {
     if (!(nodeId in nodes)) {
-      const node = await models.node.findOne({ where: { id: nodeId } });
+      const node = await import_schema.models.node.findOne({ where: { id: nodeId } });
       const content = node.toJSON().content;
-      console.log("got node content from db: ", content);
       nodes[nodeId] = {
         updates: [],
         pending: [],
@@ -49,15 +48,12 @@ const initSocketService = (io) => {
   }
   async function getWorld(worldId) {
     if (!(worldId in worlds)) {
-      const nodes2 = await models.node.findAll({ where: { worldId }, order: [["id", "ASC"]] });
+      const nodes2 = await import_schema.models.node.findAll({ where: { worldId }, order: [["id", "ASC"]] });
       const blocks = {};
       for (let node of nodes2) {
-        const { result: response } = await (0, import_interpreterService.interpretGen)(node.content);
-        const { blocks: nodeBlocks } = response;
-        console.log("for node: ", node.id, " got result: ", response);
-        (0, import_blockUtilFns.addNodeToBlocks)(blocks, node.id, node.pos);
-        console.log({ blocks });
-        (0, import_blockUtilFns.addNewBlocksToBlocks)(blocks, node.id, node.pos, nodeBlocks);
+        const { blocks: nodeBlocks } = await (0, import_interpreterService.interpretGen)(node.content);
+        (0, import_blockUtils.addNodeToBlocks)(blocks, node.id, node.pos);
+        (0, import_blockUtils.addNewBlocksToBlocks)(blocks, node.id, node.pos, nodeBlocks);
       }
       worlds[worldId] = {
         users: {},

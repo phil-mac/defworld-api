@@ -24,8 +24,8 @@ var __toModule = (module2) => {
 __export(exports, {
   worldInit: () => worldInit
 });
-var import_blockUtilFns = __toModule(require("../../utils/blockUtilFns"));
-const { models } = require("../../schema");
+var import_blockUtils = __toModule(require("../utils/blockUtils"));
+var import_schema = __toModule(require("../schema"));
 function worldInit(io, socket, getWorld) {
   socket.on("joinWorld", async ({ name, worldId }) => {
     socket.join(`world-${worldId}`);
@@ -53,17 +53,17 @@ function worldInit(io, socket, getWorld) {
     });
     socket.on("addNode", addNode);
     async function addNode({ pos }) {
-      const scriptNode = await models.node.create({ worldId, pos: [pos.x, pos.y, pos.z] });
+      const scriptNode = await import_schema.models.node.create({ worldId, pos: [pos.x, pos.y, pos.z] });
       const blocks = world.blocks;
-      const nodeToAdd = (0, import_blockUtilFns.addNodeToBlocks)(blocks, scriptNode.id, [pos.x, pos.y, pos.z]);
+      const nodeToAdd = (0, import_blockUtils.addNodeToBlocks)(blocks, scriptNode.id, [pos.x, pos.y, pos.z]);
       io.in(room).emit("blocksUpdate", { blocksToAdd: nodeToAdd });
     }
     socket.on("deleteNode", deleteNode);
     async function deleteNode({ nodeId }) {
-      const returnedNode = await models.node.findOne({ where: { id: nodeId } });
-      await models.node.destroy({ where: { id: nodeId } });
+      const returnedNode = await import_schema.models.node.findOne({ where: { id: nodeId } });
+      await import_schema.models.node.destroy({ where: { id: nodeId } });
       let blocks = world.blocks;
-      (0, import_blockUtilFns.removeNodeFromBlocks)(blocks, returnedNode.pos);
+      (0, import_blockUtils.removeNodeFromBlocks)(blocks, returnedNode.pos);
       io.in(room).emit("blocksUpdate", {
         idOfNodeToRemove: returnedNode.id,
         nodeIdOfBlocksToRemove: returnedNode.id

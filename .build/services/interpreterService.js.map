@@ -1,7 +1,7 @@
 {
   "version": 3,
   "sources": ["../../services/interpreterService.ts"],
-  "sourcesContent": ["import axios from 'axios';\n\nexport const interpretGen = (input: string) => new Promise((resolve, reject) =>   {\n    axios\n      .post('https://gen.phil-mac.repl.co/interpret', {\n        input\n      })\n      .then(res => {\n        resolve(res.data);\n      })\n      .catch(e => {\n        console.error(e);\n        reject(e);\n      })\n  }\n);"],
-  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA,mBAAkB;AAEX,MAAM,eAAe,CAAC,UAAkB,IAAI,QAAQ,CAAC,SAAS,WAAa;AAC9E,uBACG,KAAK,0CAA0C;AAAA,IAC9C;AAAA,KAED,KAAK,SAAO;AACX,YAAQ,IAAI;AAAA,KAEb,MAAM,OAAK;AACV,YAAQ,MAAM;AACd,WAAO;AAAA;AAAA;",
+  "sourcesContent": ["import axios from 'axios';\n\nexport type GenBlock = {\n  x: number;\n  y: number;\n  z: number;\n  color?: string;\n}\n\nexport type GenResponse = {\n  result: string,\n  error: string,\n  blocks: GenBlock[];\n}\n\nexport const interpretGen = (input: string) : Promise<GenResponse> => new Promise((resolve, reject) => {\n  axios\n    .post('https://gen.phil-mac.repl.co/interpret', {\n      input\n    })\n    .then(res => {\n      resolve(res.data.result);\n    })\n    .catch(e => {\n      console.error(e);\n      reject(e);\n    })\n}\n);"],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA,mBAAkB;AAeX,MAAM,eAAe,CAAC,UAAyC,IAAI,QAAQ,CAAC,SAAS,WAAW;AACrG,uBACG,KAAK,0CAA0C;AAAA,IAC9C;AAAA,KAED,KAAK,SAAO;AACX,YAAQ,IAAI,KAAK;AAAA,KAElB,MAAM,OAAK;AACV,YAAQ,MAAM;AACd,WAAO;AAAA;AAAA;",
   "names": []
 }

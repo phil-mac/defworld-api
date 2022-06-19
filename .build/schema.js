@@ -5,6 +5,11 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
+var __export = (target, all) => {
+  __markAsModule(target);
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __reExport = (target, module2, desc) => {
   if (module2 && typeof module2 === "object" || typeof module2 === "function") {
     for (let key of __getOwnPropNames(module2))
@@ -16,36 +21,20 @@ var __reExport = (target, module2, desc) => {
 var __toModule = (module2) => {
   return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", module2 && module2.__esModule && "default" in module2 ? { get: () => module2.default, enumerable: true } : { value: module2, enumerable: true })), module2);
 };
+__export(exports, {
+  models: () => models,
+  schema: () => schema,
+  seedDatabase: () => seedDatabase
+});
 var import_fs = __toModule(require("fs"));
 var import_merge = __toModule(require("lodash/merge"));
 var import_apollo_server_core = __toModule(require("apollo-server-core"));
 var import_sequelize = __toModule(require("sequelize"));
 var import_schema = __toModule(require("@graphql-tools/schema"));
 const sequelize = new import_sequelize.Sequelize(process.env.POSTGRES);
-const entities = [];
-const models = {};
-const typeDefImports = [];
-import_fs.default.readdirSync("./entities").forEach((file) => {
-  const entityName = file.slice(0, -3);
-  const entity = require("./entities/" + entityName);
-  for (const property of ["define", "resolvers", "typeDefs"]) {
-    if (!entity[property])
-      console.error(`No "${property}" found for "${entityName}" entity.`);
-  }
-  entities.push(entity);
-  models[entityName] = entity.define(sequelize);
-  typeDefImports.push(entity.typeDefs);
-});
-const typeDefs = import_apollo_server_core.gql`${typeDefImports.join("")}`;
-models.world.belongsToMany(models.user, { through: models.worldUser });
-models.user.belongsToMany(models.world, { through: models.worldUser });
-models.world.hasMany(models.node);
-models.node.belongsTo(models.world);
-const resolvers = {};
-entities.forEach((entity) => {
-  const entityResolvers = entity.resolvers(models);
-  (0, import_merge.default)(resolvers, entityResolvers);
-});
+const models = generateModels();
+const typeDefs = generateTypeDefs();
+const resolvers = generateResolvers();
 const schema = (0, import_schema.makeExecutableSchema)({ typeDefs, resolvers });
 const seedDatabase = async () => {
   await sequelize.sync({ force: true });
@@ -53,9 +42,50 @@ const seedDatabase = async () => {
   const worldOne = await models.world.create({ name: "Terra One" });
   await models.worldUser.create({ userId: userOne.id, worldId: worldOne.id });
   await models.world.create({ name: "New world" });
-  await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [10, 0, 25] });
-  await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [10, 0, 10] });
-  await resolvers.Mutation.createNode(void 0, { worldId: worldOne.id, pos: [18, 0, 10] });
+  await models.node.create({ worldId: worldOne.id, pos: [10, 0, 25] });
+  await models.node.create({ worldId: worldOne.id, pos: [10, 0, 10] });
+  await models.node.create({ worldId: worldOne.id, pos: [18, 0, 10] });
 };
-module.exports = { schema, seedDatabase, models };
+function forEachEntityExport(exportName, callback) {
+  import_fs.default.readdirSync("./entities").forEach((file) => {
+    const entityName = file.slice(0, -3);
+    const entity = require("./entities/" + entityName);
+    if (!entity[exportName])
+      console.error(`No "${exportName}" found for "${entityName}" entity.`);
+    callback.call(void 0, entity, entityName);
+  });
+}
+function generateModels() {
+  const newModels = {};
+  forEachEntityExport("define", (entity, entityName) => {
+    newModels[entityName] = entity.define(sequelize);
+  });
+  newModels.world.belongsToMany(newModels.user, { through: newModels.worldUser });
+  newModels.user.belongsToMany(newModels.world, { through: newModels.worldUser });
+  newModels.world.hasMany(newModels.node);
+  newModels.node.belongsTo(newModels.world);
+  return newModels;
+}
+;
+function generateTypeDefs() {
+  const typeDefImports = [];
+  forEachEntityExport("typeDefs", (entity, entityName) => {
+    typeDefImports.push(entity.typeDefs);
+  });
+  return import_apollo_server_core.gql`${typeDefImports.join("")}`;
+}
+function generateResolvers() {
+  const resolvers2 = {};
+  forEachEntityExport("resolvers", (entity, entityName) => {
+    const entityResolvers = entity.resolvers(models);
+    (0, import_merge.default)(resolvers2, entityResolvers);
+  });
+  return resolvers2;
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  models,
+  schema,
+  seedDatabase
+});
 //# sourceMappingURL=schema.js.map

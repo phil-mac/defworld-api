@@ -29,7 +29,7 @@ const interpretGen = (input) => new Promise((resolve, reject) => {
   import_axios.default.post("https://gen.phil-mac.repl.co/interpret", {
     input
   }).then((res) => {
-    resolve(res.data);
+    resolve(res.data.result);
   }).catch((e) => {
     console.error(e);
     reject(e);

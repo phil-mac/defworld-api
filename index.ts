@@ -3,17 +3,18 @@
 import http from 'http';
 import express from 'express';
 import cors from 'cors';
-import sockets from 'socket.io';
+import sockets, { Server } from 'socket.io';
 import { ApolloServer } from 'apollo-server-express';
 import { ApolloServerPluginDrainHttpServer } from 'apollo-server-core';
 
-import {initSocketService} from './services/socketService';
+import { initSocketService } from './sockets';
 
-const { schema, seedDatabase } = require('./schema');
+import { schema, seedDatabase } from './schema';
+
 
 // ---- express ----
 const app = express();
-app.use(cors());
+app.use(cors());  
 app.get('/', async (req: any, res: any) => {
   res.send('Hello world');
 });
@@ -22,7 +23,8 @@ app.get('/', async (req: any, res: any) => {
 const httpServer = http.createServer(app);
 
 // ---- sockets ----
-const io = sockets(httpServer, {
+//@ts-ignore
+const io : Server = sockets(httpServer, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
@@ -39,12 +41,12 @@ const server = new ApolloServer({
 // ---- listen, with option of seeding database ----
 (async () => {
   if (false) await seedDatabase();
-  
+
   await server.start();
   server.applyMiddleware({ app });
 
-  await new Promise(resolve => httpServer.listen({ port: 4000 }, resolve));
-  
+  await new Promise<void>(resolve => httpServer.listen({ port: 4000 }, resolve));
+
   initSocketService(io);
 })();
 

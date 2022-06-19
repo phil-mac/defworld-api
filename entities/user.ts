@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Sequelize } from 'sequelize';
 
 const typeDefs = `
   type Query {
@@ -18,14 +18,14 @@ const typeDefs = `
 `;
 
 
-const define = sequelize => sequelize.define('user', {
+const define = (sequelize: Sequelize) => sequelize.define('user', {
   username: {
     type: DataTypes.STRING,
     allowNull: false
   },
 }, {});
 
-const resolvers = models => ({
+const resolvers = (models: any) => ({
   Query: {
     user: async (parent: any, args: any) => {
       const { id } = args;
@@ -38,18 +38,18 @@ const resolvers = models => ({
   Mutation: {
     createUser: async (parent: any, args: any) => {
       const { username } = args;
-      const existingUser = await models.user.findOne({ where: { username }});
-      if (!!existingUser){
+      const existingUser = await models.user.findOne({ where: { username } });
+      if (!!existingUser) {
         return existingUser.toJSON();
       } else {
         const user = await models.user.create({ username });
         return user.toJSON();
-      } 
+      }
     },
   },
   User: {
     worldUsers: async (user: any) => {
-      return await models.worldUser.findAll({ where: { userId: user.id }});
+      return await models.worldUser.findAll({ where: { userId: user.id } });
     },
   },
 });

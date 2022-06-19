@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Sequelize } from 'sequelize';
 
 const typeDefs = `
   type World {
@@ -18,14 +18,14 @@ const typeDefs = `
   }
 `;
 
-const define = (sequelize) => sequelize.define('world', {
+const define = (sequelize: Sequelize) => sequelize.define('world', {
   name: {
     type: DataTypes.STRING,
     allowNull: false
   },
 });
 
-const resolvers = models => ({
+const resolvers = (models: any) => ({
   Query: {
     world: async (parent: any, args: any) => {
       const { id } = args;
@@ -47,7 +47,7 @@ const resolvers = models => ({
       return await models.node.findAll({ where: { worldId: world.id }, order: [['id', 'ASC']] });
     },
     worldUsers: async (world: any) => {
-      return await models.worldUser.findAll({ where: { worldId: world.id }});
+      return await models.worldUser.findAll({ where: { worldId: world.id } });
     },
   },
 });

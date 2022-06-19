@@ -32,12 +32,10 @@ __export(exports, {
 var import_cssColors = __toModule(require("./cssColors"));
 const gridSideLength = 64;
 function indexFromCoords([x, y, z]) {
-  console.log({ gridSideLength });
   return x + gridSideLength * z + gridSideLength * gridSideLength * y;
 }
 function addNodeToBlocks(blocks, nodeId, pos) {
   const nodeIndex = indexFromCoords(pos);
-  console.log({ nodeIndex });
   blocks[nodeIndex] = [nodeId, 500];
   const blocksToAdd = {};
   blocksToAdd[nodeIndex] = [nodeId, 500];
@@ -78,4 +76,4 @@ function removeNodeFromBlocks(blocks, nodePos) {
   removeBlocksFromBlocks,
   removeNodeFromBlocks
 });
-//# sourceMappingURL=blockUtilFns.js.map
+//# sourceMappingURL=blockUtils.js.map

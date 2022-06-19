@@ -22,8 +22,8 @@ var import_cors = __toModule(require("cors"));
 var import_socket = __toModule(require("socket.io"));
 var import_apollo_server_express = __toModule(require("apollo-server-express"));
 var import_apollo_server_core = __toModule(require("apollo-server-core"));
-var import_socketService = __toModule(require("./services/socketService"));
-const { schema, seedDatabase } = require("./schema");
+var import_sockets = __toModule(require("./sockets"));
+var import_schema = __toModule(require("./schema"));
 const app = (0, import_express.default)();
 app.use((0, import_cors.default)());
 app.get("/", async (req, res) => {
@@ -37,7 +37,7 @@ const io = (0, import_socket.default)(httpServer, {
   }
 });
 const server = new import_apollo_server_express.ApolloServer({
-  schema,
+  schema: import_schema.schema,
   csrfPrevention: true,
   plugins: [(0, import_apollo_server_core.ApolloServerPluginDrainHttpServer)({ httpServer })]
 });
@@ -47,6 +47,6 @@ const server = new import_apollo_server_express.ApolloServer({
   await server.start();
   server.applyMiddleware({ app });
   await new Promise((resolve) => httpServer.listen({ port: 4e3 }, resolve));
-  (0, import_socketService.initSocketService)(io);
+  (0, import_sockets.initSocketService)(io);
 })();
 //# sourceMappingURL=index.js.map

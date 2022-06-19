@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Sequelize } from 'sequelize';
 
 const typeDefs = `
   type WorldUser {
@@ -11,7 +11,7 @@ const typeDefs = `
   }
 `;
 
-const define = sequelize => sequelize.define('worldUser', {
+const define = (sequelize: Sequelize) => sequelize.define('worldUser', {
   id: {
     primaryKey: true,
     type: DataTypes.INTEGER,
@@ -25,13 +25,13 @@ const define = sequelize => sequelize.define('worldUser', {
   },
 });
 
-const resolvers = models => ({
+const resolvers = (models: any) => ({
   WorldUser: {
     user: async (worldUser: any) => {
-      return await models.user.findOne({where: {id: worldUser.userId}});
+      return await models.user.findOne({ where: { id: worldUser.userId } });
     },
     world: async (worldUser: any) => {
-      return await models.world.findOne({where: {id: worldUser.worldId}});
+      return await models.world.findOne({ where: { id: worldUser.worldId } });
     }
   }
 });

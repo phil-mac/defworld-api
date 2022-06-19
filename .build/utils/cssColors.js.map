@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../utils/cssColors.ts"],
+  "sourcesContent": ["const CSS_COLOR_NAMES = [\n  'black',\n  'white',\n  'red',\n  'lime',\n  'blue',\n  'yellow',\n  'cyan',\n  'aqua',\n  'magenta',\n  'fuchsia',\n  'silver',\n  'gray',\n  'maroon',\n  'olive',\n  'green',\n  'purple',\n  'teal',\n  'navy',\n];\n\nexport function colorToId (colorName) {\n  return CSS_COLOR_NAMES.indexOf(colorName);\n}"],
+  "mappings": ";;;;;;;AAAA;AAAA;AAAA;AAAA,MAAM,kBAAkB;AAAA,EACtB;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA,EACA;AAAA;AAGK,mBAAoB,WAAW;AACpC,SAAO,gBAAgB,QAAQ;AAAA;",
+  "names": []
+}

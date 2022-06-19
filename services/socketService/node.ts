@@ -1,8 +1,8 @@
+
 const { ChangeSet } = require('@codemirror/state');
-const { Update } = require('@codemirror/collab'); 
 const { models } = require('../../schema');
 const interpreterService = require('../interpreterService');
-const { gridSideLength } = require('../../entities/world');
+import { addNewBlocksToBlocks, removeBlocksFromBlocks } from "../../utils/blockUtilFns";
 
 function nodeInit(io, socket, getNode, getWorld) {
   socket.on('joinNode', joinNode);
@@ -21,8 +21,6 @@ function nodeInit(io, socket, getNode, getWorld) {
     socket.in(`node-${nodeId}`).emit('broadcast', name + 'left node ' + nodeId);
   });
 
-  // ------- OT logic --------
-  
   async function joinNode ({name, nodeId}) {
     socket.join(`node-${nodeId}`);
     const node = await getNode(nodeId);
@@ -89,48 +87,53 @@ function nodeInit(io, socket, getNode, getWorld) {
     }
 
     async function updateWorldGrid({returnedNode, content}) {
-      const { result } = await interpreterService.interpretGen(content);
-      const evalResult = result.result;
-      const blocks = result.blocks; // [{x:1, y:1, z:1}, {x:2, y:2, z:2}]
+      const { result: response } = await interpreterService.interpretGen(content);
+      const {result: evalResult, error: evalError, blocks: newBlocks} = response;
      
       const worldId = returnedNode.worldId;
       const world = await getWorld(worldId);
-      let grid = world.grid;
+      let blocks = world.blocks;
 
-      let blocksObj = {};
+      // let blocksObj = {};
+
+      removeBlocksFromBlocks(blocks, returnedNode.id);
+      const blocksToAdd = addNewBlocksToBlocks(blocks, returnedNode.id, returnedNode.pos, newBlocks);
       
-      blocks.forEach(block => {
-        const x = returnedNode.pos[0] + block.x;
-        const y = returnedNode.pos[1] + block.y;
-        const z = returnedNode.pos[2] + block.z;
-        const index = x + (gridSideLength * z) + (gridSideLength * gridSideLength * y);
-        blocksObj[index] = [returnedNode.id, 5];
-      });
+      // blocks.forEach(block => {
+      //   const x = returnedNode.pos[0] + block.x;
+      //   const y = returnedNode.pos[1] + block.y;
+      //   const z = returnedNode.pos[2] + block.z;
+      //   const index = x + (gridSideLength * z) + (gridSideLength * gridSideLength * y);
+
+      //   const colorId = !!block.color ? colorToId(block.color) : -1;
+      //   console.log({block, colorId})
+      //   blocksObj[index] = [returnedNode.id, colorId];
+      // });
 
       // clear grid of old blocks from this node
-      grid.forEach((el, i) => {
-        if (el[0] === returnedNode.id && el[1] !== 50){
-          grid[i] = [0, 0];
-        }
-      })
+      // grid.forEach((el, i) => {
+      //   if (el[0] === returnedNode.id && el[1] !== 500){
+      //     grid[i] = [0, 0];
+      //   }
+      // })
 
-      grid.forEach((el, i) => {
-        let b = blocksObj[i];
-        if (!!b && grid[i][0] === 0 && grid[i][1] === 0){
-          grid[i] = b;
-        }
-      })
+      // grid.forEach((el, i) => {
+      //   let b = blocksObj[i];
+      //   if (!!b && grid[i][0] === 0 && grid[i][1] === 0){
+      //     grid[i] = b;
+      //   }
+      // })
 
       // save grid in server memory 
-      world.grid = grid;
+      // world.grid = grid;
       
       // send new grid to all clients in world
-      io.in(`world-${worldId}`).emit('gridUpdate', {grid});
+      io.in(`world-${worldId}`).emit('blocksUpdate', {blocksToAdd, nodeIdOfBlocksToRemove: returnedNode.id});
       // send result of eval to clients in this node
-      io.in(`node-${returnedNode.id}`).emit('evalResult', {result: evalResult})
+      io.in(`node-${returnedNode.id}`).emit('evalResult', {result: evalResult, error: evalError})
 
       // TODO: for now, saving grid to database, later can just rederive from nodes on initial load
-      await models.world.update({grid}, {where: {id: returnedNode.worldId}});
+      // await models.world.update({grid}, {where: {id: returnedNode.worldId}});
     }
 
 

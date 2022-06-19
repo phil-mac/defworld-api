@@ -1,12 +1,10 @@
 const { DataTypes } = require('sequelize');
-const gridSideLength = 32;
 
 const typeDefs = `
   type World {
     id: ID!
     name: String!
     nodes: [Node!]
-    grid: [[Int!]!]
     worldUsers: [WorldUser!]!
   }
 
@@ -25,11 +23,6 @@ const define = (sequelize) => sequelize.define('world', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  grid: {
-    type: DataTypes.ARRAY(DataTypes.ARRAY(DataTypes.INTEGER)),
-    allowNull: false,
-    defaultValue: [...Array(Math.pow(gridSideLength, 3))].map(e => Array(2).fill(0))
-  }
 });
 
 const resolvers = models => ({
@@ -60,4 +53,4 @@ const resolvers = models => ({
 });
 
 
-module.exports = { typeDefs, define, resolvers, gridSideLength };
+module.exports = { typeDefs, define, resolvers };

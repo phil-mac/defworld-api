@@ -61,7 +61,7 @@ const server = new ApolloServer({
 
 // ---- seed? & listen ----
 (async () => {
-  if (true) await seedDatabase();
+  if (false) await seedDatabase();
   
   await server.start();
   server.applyMiddleware({ app });

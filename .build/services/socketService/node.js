@@ -1,8 +1,25 @@
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
+var __reExport = (target, module2, desc) => {
+  if (module2 && typeof module2 === "object" || typeof module2 === "function") {
+    for (let key of __getOwnPropNames(module2))
+      if (!__hasOwnProp.call(target, key) && key !== "default")
+        __defProp(target, key, { get: () => module2[key], enumerable: !(desc = __getOwnPropDesc(module2, key)) || desc.enumerable });
+  }
+  return target;
+};
+var __toModule = (module2) => {
+  return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", module2 && module2.__esModule && "default" in module2 ? { get: () => module2.default, enumerable: true } : { value: module2, enumerable: true })), module2);
+};
+var import_blockUtilFns = __toModule(require("../../utils/blockUtilFns"));
 const { ChangeSet } = require("@codemirror/state");
-const { Update } = require("@codemirror/collab");
 const { models } = require("../../schema");
 const interpreterService = require("../interpreterService");
-const { gridSideLength } = require("../../entities/world");
 function nodeInit(io, socket, getNode, getWorld) {
   socket.on("joinNode", joinNode);
   socket.on("leaveNode", async ({ name, nodeId }) => {
@@ -14,9 +31,6 @@ function nodeInit(io, socket, getNode, getWorld) {
     socket.removeAllListeners("pullUpdates");
     socket.removeAllListeners("pushUpdates");
     socket.in(`node-${nodeId}`).emit("broadcast", name + "left node " + nodeId);
-  });
-  socket.on("disconnect", () => {
-    console.log("client disconnected from socket, for node stuff");
   });
   async function joinNode({ name, nodeId }) {
     socket.join(`node-${nodeId}`);
@@ -41,7 +55,6 @@ function nodeInit(io, socket, getNode, getWorld) {
     }
     socket.on("pushUpdates", pushUpdates);
     async function pushUpdates({ rev, updates }) {
-      console.log("push updates");
       const initialDoc = node.doc.toString();
       if (rev != node.updates.length) {
         resToPushUpdates(false);
@@ -50,7 +63,6 @@ function nodeInit(io, socket, getNode, getWorld) {
       for (let update of updates) {
         let changes = ChangeSet.fromJSON(update.changes);
         let effects = JSON.parse(update.effects);
-        console.log("EFFECTS: ", effects);
         node.updates.push({ changes, effects: update.effects, clientId: update.clientID });
         node.doc = changes.apply(node.doc);
       }
@@ -69,35 +81,15 @@ function nodeInit(io, socket, getNode, getWorld) {
       socket.emit("pushUpdatesRes", didSucceed);
     }
     async function updateWorldGrid({ returnedNode, content }) {
-      const { result } = await interpreterService.interpretGen(content);
-      const evalResult = result.result;
-      const blocks = result.blocks;
+      const { result: response } = await interpreterService.interpretGen(content);
+      const { result: evalResult, error: evalError, blocks: newBlocks } = response;
       const worldId = returnedNode.worldId;
       const world = await getWorld(worldId);
-      let grid = world.grid;
-      let blocksObj = {};
-      blocks.forEach((block) => {
-        const x = returnedNode.pos[0] + block.x;
-        const y = returnedNode.pos[1] + block.y;
-        const z = returnedNode.pos[2] + block.z;
-        const index = x + gridSideLength * z + gridSideLength * gridSideLength * y;
-        blocksObj[index] = [returnedNode.id, 5];
-      });
-      grid.forEach((el, i) => {
-        if (el[0] === returnedNode.id && el[1] !== 50) {
-          grid[i] = [0, 0];
-        }
-      });
-      grid.forEach((el, i) => {
-        let b = blocksObj[i];
-        if (!!b && grid[i][0] === 0 && grid[i][1] === 0) {
-          grid[i] = b;
-        }
-      });
-      world.grid = grid;
-      io.in(`world-${worldId}`).emit("gridUpdate", { grid });
-      io.in(`node-${returnedNode.id}`).emit("evalResult", { result: evalResult });
-      await models.world.update({ grid }, { where: { id: returnedNode.worldId } });
+      let blocks = world.blocks;
+      (0, import_blockUtilFns.removeBlocksFromBlocks)(blocks, returnedNode.id);
+      const blocksToAdd = (0, import_blockUtilFns.addNewBlocksToBlocks)(blocks, returnedNode.id, returnedNode.pos, newBlocks);
+      io.in(`world-${worldId}`).emit("blocksUpdate", { blocksToAdd, nodeIdOfBlocksToRemove: returnedNode.id });
+      io.in(`node-${returnedNode.id}`).emit("evalResult", { result: evalResult, error: evalError });
     }
   }
 }

@@ -1,6 +1,26 @@
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
+var __reExport = (target, module2, desc) => {
+  if (module2 && typeof module2 === "object" || typeof module2 === "function") {
+    for (let key of __getOwnPropNames(module2))
+      if (!__hasOwnProp.call(target, key) && key !== "default")
+        __defProp(target, key, { get: () => module2[key], enumerable: !(desc = __getOwnPropDesc(module2, key)) || desc.enumerable });
+  }
+  return target;
+};
+var __toModule = (module2) => {
+  return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", module2 && module2.__esModule && "default" in module2 ? { get: () => module2.default, enumerable: true } : { value: module2, enumerable: true })), module2);
+};
+var import_blockUtilFns = __toModule(require("../../utils/blockUtilFns"));
 const { Text } = require("@codemirror/state");
 const nodeInit = require("./node");
 const worldInit = require("./world");
+const interpreterService = require("../interpreterService");
 const { models } = require("../../schema");
 const init = (io) => {
   const nodes = {};
@@ -21,17 +41,24 @@ const init = (io) => {
   }
   async function getWorld(worldId) {
     if (!(worldId in worlds)) {
-      const world = await models.world.findOne({ where: { id: worldId } });
-      const grid = world.toJSON().grid;
+      const nodes2 = await models.node.findAll({ where: { worldId }, order: [["id", "ASC"]] });
+      const blocks = {};
+      for (let node of nodes2) {
+        const { result: response } = await interpreterService.interpretGen(node.content);
+        const { blocks: nodeBlocks } = response;
+        console.log("for node: ", node.id, " got result: ", response);
+        (0, import_blockUtilFns.addNodeToBlocks)(blocks, node.id, node.pos);
+        console.log({ blocks });
+        (0, import_blockUtilFns.addNewBlocksToBlocks)(blocks, node.id, node.pos, nodeBlocks);
+      }
       worlds[worldId] = {
         users: {},
-        grid
+        blocks
       };
     }
     return worlds[worldId];
   }
   io.on("connection", (socket) => {
-    socket.emit("ack", "Welcome to the socket, client.");
     console.log("client connected to socket");
     worldInit(io, socket, getWorld);
     nodeInit(io, socket, getNode, getWorld);

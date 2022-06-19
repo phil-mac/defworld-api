@@ -41,6 +41,7 @@ entities.forEach(entity => {
   merge(resolvers, entityResolvers);
 });
 
+
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
 // could import seedDatabase functions from elsewhere, and call using `models` here
@@ -52,15 +53,11 @@ const seedDatabase = async () => {
 
   await models.worldUser.create({ userId: userOne.id, worldId: worldOne.id });
   
-  const worldTwo = await models.world.create({ name: 'New world' });
+  await models.world.create({ name: 'New world' });
 
   await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [10, 0, 25]})
   await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [10, 0, 10]})
   await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [18, 0, 10]})
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [0, 0, 0]})
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [31, 0, 0]})
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [0, 0, 31]})
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [31, 0, 31]})
 }
 
 module.exports = { schema, seedDatabase, models };

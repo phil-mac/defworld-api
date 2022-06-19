@@ -5,6 +5,11 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
+var __export = (target, all) => {
+  __markAsModule(target);
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __reExport = (target, module2, desc) => {
   if (module2 && typeof module2 === "object" || typeof module2 === "function") {
     for (let key of __getOwnPropNames(module2))
@@ -16,10 +21,13 @@ var __reExport = (target, module2, desc) => {
 var __toModule = (module2) => {
   return __reExport(__markAsModule(__defProp(module2 != null ? __create(__getProtoOf(module2)) : {}, "default", module2 && module2.__esModule && "default" in module2 ? { get: () => module2.default, enumerable: true } : { value: module2, enumerable: true })), module2);
 };
+__export(exports, {
+  nodeInit: () => nodeInit
+});
+var import_state = __toModule(require("@codemirror/state"));
+var import_interpreterService = __toModule(require("../interpreterService"));
 var import_blockUtilFns = __toModule(require("../../utils/blockUtilFns"));
-const { ChangeSet } = require("@codemirror/state");
 const { models } = require("../../schema");
-const interpreterService = require("../interpreterService");
 function nodeInit(io, socket, getNode, getWorld) {
   socket.on("joinNode", joinNode);
   socket.on("leaveNode", async ({ name, nodeId }) => {
@@ -61,7 +69,7 @@ function nodeInit(io, socket, getNode, getWorld) {
         return;
       }
       for (let update of updates) {
-        let changes = ChangeSet.fromJSON(update.changes);
+        let changes = import_state.ChangeSet.fromJSON(update.changes);
         let effects = JSON.parse(update.effects);
         node.updates.push({ changes, effects: update.effects, clientId: update.clientID });
         node.doc = changes.apply(node.doc);
@@ -81,7 +89,7 @@ function nodeInit(io, socket, getNode, getWorld) {
       socket.emit("pushUpdatesRes", didSucceed);
     }
     async function updateWorldGrid({ returnedNode, content }) {
-      const { result: response } = await interpreterService.interpretGen(content);
+      const { result: response } = await (0, import_interpreterService.interpretGen)(content);
       const { result: evalResult, error: evalError, blocks: newBlocks } = response;
       const worldId = returnedNode.worldId;
       const world = await getWorld(worldId);
@@ -93,5 +101,8 @@ function nodeInit(io, socket, getNode, getWorld) {
     }
   }
 }
-module.exports = nodeInit;
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  nodeInit
+});
 //# sourceMappingURL=node.js.map

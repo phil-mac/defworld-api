@@ -1,16 +1,13 @@
-// https://api.elephantsql.com/console/22b867f3-f91d-4cc1-a98f-0ca00c11f316/browser
+// Postgres database: https://api.elephantsql.com/console/22b867f3-f91d-4cc1-a98f-0ca00c11f316/browser
 
-const http = require('http');
-const express = require('express');
-const cors = require('cors');
-const sockets = require('socket.io');
+import http from 'http';
+import express from 'express';
+import cors from 'cors';
+import sockets from 'socket.io';
+import { ApolloServer } from 'apollo-server-express';
+import { ApolloServerPluginDrainHttpServer } from 'apollo-server-core';
 
-const { ApolloServer } = require('apollo-server-express');
-const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
-const { WebSocketServer } = require('ws');
-const { useServer } = require('graphql-ws/lib/use/ws');
-
-const socketService = require('./services/socketService');
+import {initSocketService} from './services/socketService';
 
 const { schema, seedDatabase } = require('./schema');
 
@@ -33,33 +30,13 @@ const io = sockets(httpServer, {
 });
 
 // ---- graphQL ----
-
-// ---- temporarily removing graphql subscriptions ----
-// const wsServer = new WebSocketServer({
-//   server: httpServer,
-//   path: '/subscriptions',
-// });
-// const serverCleanup = useServer({ schema }, wsServer);
-
 const server = new ApolloServer({
   schema,
-  csrfPrevention: false,
-  plugins: [
-    ApolloServerPluginDrainHttpServer({ httpServer }),
-    // ---- temporarily removing graphql subscriptions ----
-    // {
-    //   async serverWillStart() {
-    //     return {
-    //       async drainServer() {
-    //         await serverCleanup.dispose();
-    //       }
-    //     }
-    //   }
-    // }
-  ]
+  csrfPrevention: true,
+  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })]
 });
 
-// ---- seed? & listen ----
+// ---- listen, with option of seeding database ----
 (async () => {
   if (false) await seedDatabase();
   
@@ -68,7 +45,7 @@ const server = new ApolloServer({
 
   await new Promise(resolve => httpServer.listen({ port: 4000 }, resolve));
   
-  socketService.init(io);
+  initSocketService(io);
 })();
 
 

@@ -1,6 +1,6 @@
-const axios = require('axios');
+import axios from 'axios';
 
-const interpretGen = (input: string) => new Promise((resolve, reject) =>   {
+export const interpretGen = (input: string) => new Promise((resolve, reject) =>   {
     axios
       .post('https://gen.phil-mac.repl.co/interpret', {
         input
@@ -14,5 +14,3 @@ const interpretGen = (input: string) => new Promise((resolve, reject) =>   {
       })
   }
 );
-
-module.exports = { interpretGen };

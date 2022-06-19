@@ -1,11 +1,11 @@
-const { Text } = require('@codemirror/state');
-const nodeInit = require('./node');
-const worldInit = require('./world');
-const interpreterService = require('../interpreterService');
+import { Text } from '@codemirror/state';
+import { nodeInit } from './node';
+import { worldInit } from './world';
+import { interpretGen } from '../interpreterService';
 const { models } = require('../../schema');
 import { addNewBlocksToBlocks, addNodeToBlocks } from "../../utils/blockUtilFns";
 
-const init = (io) => {
+export const initSocketService = (io) => {
   const nodes = {};
   const worlds = {};
 
@@ -39,7 +39,7 @@ const init = (io) => {
       const blocks = {};
 
       for (let node of nodes) {
-        const { result: response } = await interpreterService.interpretGen(node.content);
+        const { result: response } = await interpretGen(node.content);
         const  { blocks: nodeBlocks } = response; // {x: number, y: number, z: number, color: string}[]
         console.log('for node: ', node.id, ' got result: ', response)
 
@@ -72,5 +72,3 @@ const init = (io) => {
     })
   });
 };
-
-module.exports = { init };

@@ -1,10 +1,9 @@
-
-const { ChangeSet } = require('@codemirror/state');
+import { ChangeSet } from '@codemirror/state';
 const { models } = require('../../schema');
-const interpreterService = require('../interpreterService');
+import { interpretGen } from '../interpreterService';
 import { addNewBlocksToBlocks, removeBlocksFromBlocks } from "../../utils/blockUtilFns";
 
-function nodeInit(io, socket, getNode, getWorld) {
+export function nodeInit(io, socket, getNode, getWorld) {
   socket.on('joinNode', joinNode);
 
   socket.on('leaveNode', async ({name, nodeId}) => {
@@ -87,7 +86,7 @@ function nodeInit(io, socket, getNode, getWorld) {
     }
 
     async function updateWorldGrid({returnedNode, content}) {
-      const { result: response } = await interpreterService.interpretGen(content);
+      const { result: response } = await interpretGen(content);
       const {result: evalResult, error: evalError, blocks: newBlocks} = response;
      
       const worldId = returnedNode.worldId;
@@ -139,5 +138,3 @@ function nodeInit(io, socket, getNode, getWorld) {
 
   }
 }
-
-module.exports = nodeInit;

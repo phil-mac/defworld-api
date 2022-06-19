@@ -19,6 +19,6 @@ const CSS_COLOR_NAMES = [
   'navy',
 ];
 
-export function colorToId (colorName) {
+export function colorToId (colorName: string) {
   return CSS_COLOR_NAMES.indexOf(colorName);
 }

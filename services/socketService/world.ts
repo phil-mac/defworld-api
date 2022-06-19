@@ -2,7 +2,7 @@ import { addNodeToBlocks, removeNodeFromBlocks } from "../../utils/blockUtilFns"
 
 const { models } = require('../../schema');
 
-function worldInit(io, socket, getWorld) {
+export function worldInit(io, socket, getWorld) {
   socket.on('joinWorld', async ({name, worldId}) => {
     socket.join(`world-${worldId}`);
     const world = await getWorld(worldId);
@@ -88,4 +88,3 @@ function worldInit(io, socket, getWorld) {
   }
 
 }
-module.exports = worldInit;

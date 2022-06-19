@@ -1,12 +1,10 @@
-const fs = require('fs');
-const merge = require('lodash/merge');
-const { gql } = require('apollo-server-core');
-const { PubSub } = require('graphql-subscriptions');
-const { Sequelize } = require('sequelize');
-const { makeExecutableSchema } = require('@graphql-tools/schema');
+import fs from 'fs';
+import merge from 'lodash/merge';
+import { gql } from 'apollo-server-core';
+import { Sequelize } from 'sequelize';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 
-const sequelize = new Sequelize(process.env.POSTGRES);
-const pubsub = new PubSub();
+const sequelize = new Sequelize(process.env.POSTGRES as string);
 
 const entities: any[] = [];
 const models: Record<string, any> = {};
@@ -37,7 +35,7 @@ models.node.belongsTo(models.world);
 
 const resolvers = {};
 entities.forEach(entity => {
-  const entityResolvers = entity.resolvers(models, pubsub);
+  const entityResolvers = entity.resolvers(models);
   merge(resolvers, entityResolvers);
 });
 
@@ -55,9 +53,9 @@ const seedDatabase = async () => {
   
   await models.world.create({ name: 'New world' });
 
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [10, 0, 25]})
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [10, 0, 10]})
-  await resolvers.Mutation.createNode(undefined, {worldId: worldOne.id, pos: [18, 0, 10]})
+  await models.node.create({worldId: worldOne.id, pos: [10, 0, 25]})
+  await models.node.create({worldId: worldOne.id, pos: [10, 0, 10]})
+  await models.node.create({worldId: worldOne.id, pos: [18, 0, 10]})
 }
 
 module.exports = { schema, seedDatabase, models };

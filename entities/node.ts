@@ -1,14 +1,8 @@
-const { DataTypes } = require('sequelize');
-const { withFilter } = require('graphql-subscriptions');
-const interpreterService = require('../services/interpreterService');
+import { DataTypes } from 'sequelize';
 
 const typeDefs = `
   type Query {
     node(id: ID!): Node!
-  }
-
-  type Mutation {
-    createNode(worldId: ID!, pos: [Int!]!): Node!
   }
 
   type Node {
@@ -30,19 +24,11 @@ const define = sequelize => sequelize.define('node', {
   }
 });
 
-const resolvers = (models, pubsub) => ({
+const resolvers = (models) => ({
   Query: {
     node: async (parent: any, args: any) => {
       const { id } = args;
       return await models.node.findOne({ where: { id } });
-    },
-  },
-  Mutation: {
-    createNode: async (parent: any, args: any) => {
-      const { worldId, pos } = args;
-      const scriptNode = await models.node.create({ worldId, pos });
-      
-      return scriptNode.toJSON();
     },
   },
 });
